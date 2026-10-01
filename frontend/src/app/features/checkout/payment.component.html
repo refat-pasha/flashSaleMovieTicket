@@ -1,0 +1,189 @@
+<div class="min-h-screen px-4 py-10">
+  <div class="mx-auto w-full max-w-lg">
+    <!-- Receipt (after a successful payment) -->
+    @if (receipt(); as paid) {
+      <section class="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-8 text-center">
+        <div class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20">
+          <svg class="h-8 w-8 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+
+        <h1 class="text-2xl font-semibold text-emerald-200">Payment complete</h1>
+        <p class="mt-2 text-sm text-emerald-300/80">Your seats are confirmed.</p>
+
+        @if (event(); as evt) {
+          <p class="mt-6 text-lg font-medium text-white">{{ evt.name }}</p>
+          <p class="text-sm text-zinc-400">{{ evt.venue }}</p>
+        }
+
+        <ul class="mt-5 flex flex-wrap justify-center gap-2">
+          @for (seat of paid.seats; track seat.ticketId) {
+            <li class="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-sm font-medium text-emerald-200">
+              {{ seat.seatNumber }}
+            </li>
+          }
+        </ul>
+
+        <dl class="mt-6 space-y-2 border-t border-emerald-500/20 pt-4 text-sm">
+          <div class="flex justify-between">
+            <dt class="text-zinc-400">Seats</dt>
+            <dd class="text-white">{{ paid.seats.length }}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-zinc-400">Paid with</dt>
+            <dd class="text-white">{{ paid.paymentMethod }}</dd>
+          </div>
+          <div class="flex justify-between text-base">
+            <dt class="text-zinc-300">Total paid</dt>
+            <dd class="font-semibold text-white">{{ formatPrice(paid.totalMinorUnits, paid.currencyCode) }}</dd>
+          </div>
+        </dl>
+
+        <button
+          type="button"
+          (click)="done()"
+          class="mt-8 w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+        >
+          Back to films
+        </button>
+      </section>
+    } @else {
+      <!-- Payment form -->
+      <header class="mb-8 text-center">
+        <p class="text-xs uppercase tracking-[0.3em] text-brand-300">Payment</p>
+        <h1 class="mt-2 text-3xl font-semibold tracking-tight">Pay for your seats</h1>
+      </header>
+
+      @if (loading()) {
+        <div class="flex justify-center py-16">
+          <div class="h-10 w-10 animate-spin rounded-full border-2 border-zinc-700 border-t-brand-400" aria-hidden="true"></div>
+        </div>
+      }
+
+      @if (error(); as message) {
+        <div class="mb-5 rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 text-sm text-rose-200" role="alert">
+          {{ message }}
+        </div>
+      }
+
+      @if (order(); as ord) {
+        <!-- Order summary -->
+        <section class="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6">
+          @if (event(); as evt) {
+            <h2 class="text-base font-semibold text-white">{{ evt.name }}</h2>
+            <p class="mt-1 text-sm text-zinc-400">{{ evt.venue }}</p>
+          }
+
+          <ul class="mt-4 flex flex-wrap gap-2">
+            @for (seat of ord.seats; track seat.ticketId) {
+              <li class="rounded-lg border border-zinc-700 bg-zinc-800/60 px-3 py-1.5 text-sm text-zinc-200">
+                {{ seat.seatNumber }}
+              </li>
+            }
+          </ul>
+
+          <div class="mt-5 flex items-center justify-between border-t border-zinc-800 pt-4">
+            <span class="text-sm text-zinc-400">{{ ord.seats.length }} seat(s)</span>
+            <span class="text-xl font-semibold text-white">
+              {{ formatPrice(ord.totalMinorUnits, ord.currencyCode) }}
+            </span>
+          </div>
+        </section>
+
+        <!-- Payment methods -->
+        <fieldset class="mb-6">
+          <legend class="mb-3 text-sm font-medium uppercase tracking-wider text-zinc-400">
+            Payment method
+          </legend>
+
+          <div class="space-y-2">
+            @for (option of methods; track option.id) {
+              <label
+                class="flex cursor-pointer items-center justify-between rounded-xl border p-4 transition"
+                [class.border-brand-500]="method() === option.id"
+                [class.bg-brand-500\/10]="method() === option.id"
+                [class.border-zinc-800]="method() !== option.id"
+                [class.bg-zinc-900\/50]="method() !== option.id"
+              >
+                <span>
+                  <span class="block text-sm font-medium text-white">{{ option.label }}</span>
+                  <span class="block text-xs text-zinc-500">{{ option.hint }}</span>
+                </span>
+
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  [value]="option.id"
+                  [checked]="method() === option.id"
+                  (change)="selectMethod(option.id)"
+                  class="h-4 w-4 accent-brand-500"
+                />
+              </label>
+            }
+          </div>
+        </fieldset>
+
+        <!-- Card details -->
+        @if (method() === 'Card') {
+          <section class="mb-6 space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6">
+            <div>
+              <label for="cardName" class="mb-1.5 block text-sm text-zinc-400">Name on card</label>
+              <input
+                id="cardName"
+                name="cardName"
+                type="text"
+                [ngModel]="cardholderName()"
+                (ngModelChange)="cardholderName.set($event)"
+                autocomplete="cc-name"
+                class="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3.5 py-2.5 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                placeholder="Alex Smith"
+              />
+            </div>
+
+            <div>
+              <label for="cardNumber" class="mb-1.5 block text-sm text-zinc-400">Card number</label>
+              <input
+                id="cardNumber"
+                name="cardNumber"
+                type="text"
+                inputmode="numeric"
+                autocomplete="cc-number"
+                [ngModel]="cardNumber()"
+                (ngModelChange)="onCardInput($event)"
+                class="w-full rounded-lg border bg-zinc-950 px-3.5 py-2.5 text-sm text-white outline-none transition focus:ring-1"
+                [class.border-zinc-700]="cardLooksValid()"
+                [class.focus:border-brand-500]="cardLooksValid()"
+                [class.focus:ring-brand-500]="cardLooksValid()"
+                [class.border-red-500]="!cardLooksValid()"
+                [class.focus:border-red-500]="!cardLooksValid()"
+                placeholder="4242 4242 4242 4242"
+              />
+              <p class="mt-1.5 text-xs text-zinc-600">
+                Demo only. No card details are stored or sent anywhere.
+              </p>
+            </div>
+          </section>
+        }
+
+        <!-- Actions -->
+        <button
+          type="button"
+          (click)="pay()"
+          [disabled]="!canPay()"
+          class="w-full rounded-lg bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {{ paying() ? 'Processing…' : 'Pay ' + formatPrice(ord.totalMinorUnits, ord.currencyCode) }}
+        </button>
+
+        <button
+          type="button"
+          (click)="backToSeats()"
+          class="mt-4 w-full rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-400 transition hover:bg-zinc-800"
+        >
+          Back to seats
+        </button>
+      }
+    }
+  </div>
+</div>

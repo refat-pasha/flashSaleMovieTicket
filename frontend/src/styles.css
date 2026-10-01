@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+/* Tailwind v4 is CSS-first: the theme is declared with @theme rather than a
+   tailwind.config.js. These tokens drive the flash-sale accent palette. */
+@theme {
+  --color-brand-50: oklch(0.97 0.02 265);
+  --color-brand-100: oklch(0.93 0.04 265);
+  --color-brand-300: oklch(0.82 0.09 265);
+  --color-brand-500: oklch(0.62 0.19 265);
+  --color-brand-600: oklch(0.55 0.21 265);
+  --color-brand-700: oklch(0.48 0.2 265);
+  --color-brand-900: oklch(0.3 0.15 265);
+
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  background-color: #09090b;
+  color: #fafafa;
+}
+
+/* Respect users who ask for less motion: the waiting room animates heavily. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

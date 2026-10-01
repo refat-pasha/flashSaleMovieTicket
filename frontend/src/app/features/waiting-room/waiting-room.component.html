@@ -1,0 +1,160 @@
+<!--
+  Waiting room UI.
+
+  Driven entirely by signals from WaitingRoomComponent; every binding reads
+  `status()`, `position()`, etc. so OnPush change detection updates the screen
+  on each SignalR push without any manual markForCheck.
+-->
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-xl">
+    <!-- Header -->
+    <header class="text-center mb-8">
+      <p class="text-xs uppercase tracking-[0.3em] text-brand-300 mb-3">Flash sale</p>
+      <h1 class="text-3xl font-semibold tracking-tight">You're in the waiting room</h1>
+      <p class="mt-3 text-sm text-zinc-400">
+        Demand is extremely high. We let buyers through in small batches so the site stays up.
+      </p>
+    </header>
+
+    <!-- Connection indicator -->
+    <div class="flex items-center justify-center gap-2 text-xs mb-6">
+      <span
+        class="inline-block h-2 w-2 rounded-full"
+        [class.bg-emerald-400]="connected()"
+        [class.bg-amber-400]="!connected() && status() !== 'error'"
+        [class.bg-rose-500]="status() === 'error'"
+        [class.animate-pulse]="!connected()"
+        aria-hidden="true"
+      ></span>
+      <span class="text-zinc-500">
+        {{ connected() ? 'Live connection' : 'Connecting…' }}
+      </span>
+    </div>
+
+    <!-- ERROR STATE -->
+    @if (status() === 'error') {
+      <section class="rounded-2xl border border-rose-500/30 bg-rose-500/5 p-8 text-center">
+        <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-rose-500/15">
+          <span class="text-2xl" aria-hidden="true">!</span>
+        </div>
+        <h2 class="text-lg font-medium text-rose-200">Something went wrong</h2>
+        <p class="mt-2 text-sm text-rose-300/80">{{ errorMessage() }}</p>
+        <div class="mt-6 flex justify-center gap-3">
+          <button
+            type="button"
+            (click)="retry()"
+            class="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-400"
+          >
+            Try again
+          </button>
+          <button
+            type="button"
+            (click)="leave()"
+            class="rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-300 transition hover:bg-zinc-800"
+          >
+            Leave
+          </button>
+        </div>
+      </section>
+    }
+
+    <!-- WAITING STATE -->
+    @else if (status() === 'waiting') {
+      <section class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-8">
+        <!-- Position counter: the animation on change is what makes the wait tangible. -->
+        <div class="text-center">
+          <p class="text-xs uppercase tracking-[0.25em] text-zinc-500">Your position</p>
+
+          <div class="mt-3 flex items-baseline justify-center gap-2">
+            <span class="text-6xl font-bold tabular-nums text-white">{{ position() ?? '—' }}</span>
+          </div>
+
+          <p class="mt-3 text-sm text-zinc-400">
+            of <span class="font-medium text-zinc-300">{{ totalWaiting() }}</span> waiting
+          </p>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="mt-8">
+          <div
+            class="h-2 w-full overflow-hidden rounded-full bg-zinc-800"
+            role="progressbar"
+            [attr.aria-valuenow]="progressPercent()"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-label="Queue progress"
+          >
+            <div
+              class="h-full rounded-full bg-gradient-to-r from-brand-600 to-brand-400 transition-[width] duration-700 ease-out"
+              [style.width.%]="progressPercent()"
+            ></div>
+          </div>
+          <p class="mt-2 text-center text-xs text-zinc-500">
+            Keep this tab open — we'll move you through automatically.
+          </p>
+        </div>
+
+        <!-- Exit -->
+        <div class="mt-8 text-center">
+          <button
+            type="button"
+            (click)="leave()"
+            class="text-xs text-zinc-500 underline-offset-4 transition hover:text-zinc-300 hover:underline"
+          >
+            Leave the queue
+          </button>
+        </div>
+      </section>
+    }
+
+    <!-- ADMITTED STATE -->
+    @else if (isAdmitted()) {
+      <section
+        class="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-8 text-center"
+        role="status"
+        aria-live="polite"
+      >
+        <div
+          class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20"
+        >
+          <svg
+            class="h-8 w-8 text-emerald-400"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            aria-hidden="true"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+
+        <h2 class="text-2xl font-semibold text-emerald-200">It's your turn</h2>
+        <p class="mt-2 text-sm text-emerald-300/80">Taking you to checkout…</p>
+
+        @if (secondsRemaining() !== null) {
+          <p class="mt-6 text-sm text-zinc-400">
+            Your checkout pass expires in
+            <span class="font-semibold tabular-nums text-white">{{ secondsRemaining() }}s</span>
+          </p>
+        }
+      </section>
+    }
+
+    <!-- CONNECTING STATE -->
+    @else {
+      <section class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-10 text-center">
+        <div
+          class="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-zinc-700 border-t-brand-400"
+          aria-hidden="true"
+        ></div>
+        <p class="text-sm text-zinc-400">Joining the queue…</p>
+      </section>
+    }
+
+    <!-- Footnote -->
+    <p class="mt-8 text-center text-xs text-zinc-600">
+      Don't refresh — you will lose your place.
+    </p>
+  </div>
+</div>

@@ -1,0 +1,204 @@
+<div class="min-h-screen px-4 py-10">
+  <div class="mx-auto w-full max-w-4xl">
+    <!-- Header -->
+    <header class="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p class="text-xs uppercase tracking-[0.3em] text-emerald-400">Admitted</p>
+        <h1 class="mt-2 text-3xl font-semibold tracking-tight">Choose your seats</h1>
+        @if (currentUserEmail(); as email) {
+          <p class="mt-1 text-xs text-zinc-500">Signed in as {{ email }}</p>
+        }
+      </div>
+
+      <div class="flex items-center gap-4 text-right">
+        @if (event(); as evt) {
+          <div class="text-sm text-zinc-400">
+            <p class="font-medium text-white">{{ evt.name }}</p>
+            <p>{{ formatPrice(evt.priceInMinorUnits, evt.currencyCode) }} · {{ evt.venue }}</p>
+          </div>
+        }
+
+        <button
+          type="button"
+          (click)="signOut()"
+          class="text-xs text-zinc-500 underline-offset-4 transition hover:text-zinc-300 hover:underline"
+        >
+          Sign out
+        </button>
+      </div>
+    </header>
+
+    <!-- Notices and errors -->
+    @if (notice(); as message) {
+      <div class="mb-5 rounded-xl border border-zinc-700 bg-zinc-800/50 p-4 text-sm text-zinc-300">
+        {{ message }}
+      </div>
+    }
+
+    @if (error(); as message) {
+      <div class="mb-5 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200" role="alert">
+        {{ message }}
+      </div>
+    }
+
+    @if (loading()) {
+      <div class="flex justify-center py-20">
+        <div class="h-10 w-10 animate-spin rounded-full border-2 border-zinc-700 border-t-brand-400" aria-hidden="true"></div>
+      </div>
+    }
+
+    @if (order(); as held) {
+      <!-- Order held: show the basket and the path to payment. -->
+      <section class="mb-6 rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-6">
+        <h2 class="text-lg font-semibold text-emerald-200">
+          {{ held.status === 'Paid' ? 'Order paid' : 'Seats held for you' }}
+        </h2>
+
+        <ul class="mt-4 flex flex-wrap gap-2">
+          @for (seat of held.seats; track seat.ticketId) {
+            <li class="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-sm font-medium text-emerald-200">
+              {{ seat.seatNumber }}
+            </li>
+          }
+        </ul>
+
+        <div class="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-emerald-500/20 pt-4">
+          <div>
+            <p class="text-xs uppercase tracking-wider text-emerald-300/70">
+              {{ held.seats.length }} seat(s) · Total
+            </p>
+            <p class="text-2xl font-semibold text-white">
+              {{ formatPrice(held.totalMinorUnits, held.currencyCode) }}
+            </p>
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            @if (held.status !== 'Paid') {
+              <button
+                type="button"
+                (click)="goToPayment()"
+                class="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              >
+                Go to payment
+              </button>
+
+              <button
+                type="button"
+                (click)="releaseOrder()"
+                [disabled]="working()"
+                class="rounded-lg border border-zinc-600 px-5 py-2.5 text-sm font-medium text-zinc-300 transition hover:bg-zinc-800 disabled:opacity-60"
+              >
+                Release seats
+              </button>
+            } @else {
+              <button
+                type="button"
+                (click)="exit()"
+                class="rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-medium text-zinc-300 transition hover:bg-zinc-800"
+              >
+                Back to films
+              </button>
+            }
+          </div>
+        </div>
+      </section>
+    }
+    <!-- Seat map -->
+    @else if (event(); as evt) {
+      <div class="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6">
+        <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-sm font-medium uppercase tracking-wider text-zinc-400">
+            Select up to {{ maxSeats }} seats
+          </h2>
+          <p class="text-xs text-zinc-500">
+            {{ seats().length - takenCount() }} of {{ seats().length }} remaining
+          </p>
+        </div>
+
+        <!-- Stage indicator -->
+        <div class="mb-6 flex items-center justify-center">
+          <div
+            class="w-full max-w-md rounded-t-[50%] border border-b-0 border-zinc-700 bg-zinc-800/40 py-3 text-center text-[0.65rem] uppercase tracking-[0.3em] text-zinc-500"
+          >
+            Screen
+          </div>
+        </div>
+
+        <ul class="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-10">
+          @for (seat of seats(); track seat.id) {
+            <li>
+              <button
+                type="button"
+                [disabled]="seat.status !== 'Available'"
+                [attr.aria-pressed]="isSelected(seat)"
+                [attr.aria-label]="'Seat ' + seat.seatNumber"
+                (click)="toggleSeat(seat)"
+                class="w-full aspect-square rounded-md border text-[0.7rem] font-medium tabular-nums transition focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:cursor-not-allowed"
+                [class]="
+                  isSelected(seat)
+                    ? 'border-brand-300 bg-brand-500/50 text-white'
+                    : seat.status === 'Available'
+                      ? 'border-zinc-700 bg-zinc-800/70 text-zinc-300 hover:border-brand-400 hover:bg-brand-500/20 hover:text-white'
+                      : seat.status === 'Reserved'
+                        ? 'border-amber-500/40 bg-amber-500/10 text-amber-400/60'
+                        : 'border-zinc-800 bg-zinc-900 text-zinc-600'
+                "
+              >
+                {{ seat.seatNumber }}
+              </button>
+            </li>
+          }
+        </ul>
+      </div>
+
+      <!-- Sticky selection bar -->
+      <div
+        class="sticky bottom-4 mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-zinc-700 bg-zinc-900/95 p-4 shadow-xl backdrop-blur"
+      >
+        <div>
+          <p class="text-xs uppercase tracking-wider text-zinc-500">
+            {{ selectionCount() }} seat(s) selected
+          </p>
+          <p class="text-lg font-semibold text-white">
+            {{ formatPrice(selectionTotal(), event()?.currencyCode ?? 'GBP') }}
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          @if (selectionCount() > 0) {
+            <button
+              type="button"
+              (click)="selected.set([])"
+              class="rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-400 transition hover:bg-zinc-800"
+            >
+              Clear
+            </button>
+          }
+
+          <button
+            type="button"
+            (click)="holdSelection()"
+            [disabled]="selectionCount() === 0 || working()"
+            class="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {{ working() ? 'Holding…' : 'Hold ' + (selectionCount() || '') + ' seat(s)' }}
+          </button>
+        </div>
+      </div>
+
+      <p class="mt-6 text-center text-xs text-zinc-600">
+        Seats are only locked once you press Hold. A limit of {{ maxSeats }} seats applies per order.
+      </p>
+    }
+
+    <div class="mt-8 text-center">
+      <button
+        type="button"
+        (click)="exit()"
+        class="text-xs text-zinc-500 underline-offset-4 transition hover:text-zinc-300 hover:underline"
+      >
+        Back to films
+      </button>
+    </div>
+  </div>
+</div>

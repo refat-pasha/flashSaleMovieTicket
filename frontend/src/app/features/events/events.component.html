@@ -1,0 +1,79 @@
+<div class="mx-auto w-full max-w-3xl px-4 py-12">
+  <header class="mb-10 flex items-center justify-between">
+    <div>
+      <p class="text-xs uppercase tracking-[0.3em] text-brand-300">Flash sale</p>
+      <h1 class="mt-2 text-3xl font-semibold tracking-tight">On sale now</h1>
+    </div>
+    <button
+      type="button"
+      (click)="signOut()"
+      class="text-xs text-zinc-500 underline-offset-4 transition hover:text-zinc-300 hover:underline"
+    >
+      Sign out
+    </button>
+  </header>
+
+  @if (loading()) {
+    <div class="flex justify-center py-20">
+      <div class="h-10 w-10 animate-spin rounded-full border-2 border-zinc-700 border-t-brand-400"></div>
+    </div>
+  }
+
+  @if (error(); as message) {
+    <div class="rounded-xl border border-rose-500/40 bg-rose-500/10 p-5 text-sm text-rose-200" role="alert">
+      {{ message }}
+    </div>
+  }
+
+  <ul class="space-y-4">
+    @for (event of events(); track event.id) {
+      <li>
+        <article
+          class="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 transition hover:border-zinc-700"
+        >
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <h2 class="text-lg font-semibold">{{ event.name }}</h2>
+              <p class="mt-1 text-sm text-zinc-400">{{ event.venue }}</p>
+              <p class="mt-3 text-sm text-zinc-500">{{ event.description }}</p>
+            </div>
+
+            <div class="text-right">
+              <p class="text-xl font-semibold tabular-nums">
+                {{ formatPrice(event.priceInMinorUnits, event.currencyCode) }}
+              </p>
+              <p class="mt-1 text-xs text-zinc-500">{{ event.seatsRemaining }} seats left</p>
+            </div>
+          </div>
+
+          <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-800 pt-4">
+            <p class="text-xs text-zinc-500">
+              {{ event.admitBatchSize }} buyers admitted per release window
+            </p>
+
+            <button
+              type="button"
+              (click)="enter(event.id)"
+              [disabled]="event.seatsRemaining === 0"
+              class="rounded-lg px-5 py-2 text-sm font-medium text-white transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-40"
+              [class.bg-brand-600]="!isCheckoutAllowed()"
+              [class.hover:bg-brand-500]="!isCheckoutAllowed()"
+              [class.focus:ring-brand-400]="!isCheckoutAllowed()"
+              [class.bg-emerald-700]="isCheckoutAllowed()"
+              [class.hover:bg-emerald-600]="isCheckoutAllowed()"
+              [class.focus:ring-emerald-400]="isCheckoutAllowed()"
+            >
+              @if (event.seatsRemaining === 0) {
+                Sold out
+              } @else if (isCheckoutAllowed()) {
+                Go to checkout
+              } @else {
+                Join waiting room
+              }
+            </button>
+          </div>
+        </article>
+      </li>
+    }
+  </ul>
+</div>

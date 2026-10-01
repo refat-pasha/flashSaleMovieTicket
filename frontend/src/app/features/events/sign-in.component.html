@@ -1,0 +1,89 @@
+<div class="flex min-h-screen items-center justify-center px-4 py-12">
+  <div class="w-full max-w-md">
+    <div class="mb-8 text-center">
+      <p class="text-xs uppercase tracking-[0.3em] text-brand-300 mb-3">Flash sale</p>
+      <h1 class="text-3xl font-semibold tracking-tight">Sign in to buy</h1>
+      <p class="mt-3 text-sm text-zinc-400">
+        You'll join a virtual waiting room before checkout.
+      </p>
+    </div>
+
+    <form (ngSubmit)="submit()" class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6">
+      <div class="space-y-4">
+        <div>
+          <label for="email" class="mb-1.5 block text-sm text-zinc-400">Email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            [ngModel]="email()" (ngModelChange)="email.set($event)"
+            autocomplete="email"
+            class="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+            placeholder="you@example.com"
+          />
+        </div>
+
+        <div>
+          <label for="displayName" class="mb-1.5 block text-sm text-zinc-400">Name</label>
+          <input
+            id="displayName"
+            name="displayName"
+            type="text"
+            required
+            [ngModel]="displayName()" (ngModelChange)="displayName.set($event)"
+            autocomplete="name"
+            class="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+            placeholder="Alex Smith"
+          />
+        </div>
+      <div>
+          <label for="password" class="mb-1.5 block text-sm text-zinc-400">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            minlength="8"
+            autocomplete="current-password"
+            [ngModel]="password()" (ngModelChange)="password.set($event)"
+            class="w-full rounded-lg border bg-zinc-950 px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:ring-1"
+            [class.border-red-500]="passwordTooShort()"
+            [class.focus:border-red-500]="passwordTooShort()"
+            [class.focus:ring-red-500]="passwordTooShort()"
+            [class.border-zinc-700]="!passwordTooShort()"
+            [class.focus:border-brand-500]="!passwordTooShort()"
+            [class.focus:ring-brand-500]="!passwordTooShort()"
+            placeholder="At least 8 characters"
+          />
+
+          @if (passwordTooShort()) {
+            <p class="mt-1.5 text-xs text-red-400">Password must be at least 8 characters.</p>
+          } @else if (isReturning()) {
+            <p class="mt-1.5 text-xs text-zinc-500">
+              This email already has an account. Use the password you first signed up with.
+            </p>
+          } @else {
+            <p class="mt-1.5 text-xs text-zinc-500">
+              First time here? This password creates your account.
+            </p>
+          }
+        </div>
+      </div>
+
+      @if (error(); as message) {
+        <p class="mt-4 rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-sm text-rose-200" role="alert">
+          {{ message }}
+        </p>
+      }
+
+      <button
+        type="submit"
+        [disabled]="!canSubmit()"
+        class="mt-6 w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {{ busy() ? 'Signing in…' : (isReturning() ? 'Sign in' : 'Continue') }}
+      </button>
+    </form>
+  </div>
+</div>
